@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {MouseControls} from '../src/mouse-controls.js';
+function rig(){const calls=[];return {calls,m:new MouseControls({begin:()=>calls.push('charge'),release:()=>calls.push('throw'),look:(x,y)=>calls.push([x,y]),cancel:()=>calls.push('cancel')})}}
+const e=(button,buttons,x=10,y=10)=>({button,buttons,clientX:x,clientY:y,movementX:5,movementY:3});
+test('Repeated right presses charge and release every held ball',()=>{const {m,calls}=rig();for(let n=0;n<3;n++){m.down(e(2,2));m.up(e(2,0))}assert.deepEqual(calls,['charge','throw','charge','throw','charge','throw'])});
+test('Left then right: aim while charging; release right throws while left stays down',()=>{const {m,calls}=rig();m.down(e(0,1));m.down(e(2,3));m.move(e(-1,3,25,16));m.up(e(2,1,25,16));m.move(e(-1,1,30,20));assert.deepEqual(calls,['charge',[15,6],'throw',[5,4]]);assert.equal(m.left,true);m.down(e(2,3,30,20));m.up(e(2,1,30,20));assert.deepEqual(calls.slice(-2),['charge','throw'])});
+test('Right then left: releasing aim never releases the charged throw',()=>{const {m,calls}=rig();m.down(e(2,2));m.down(e(0,3));m.move(e(-1,3,20,20));m.up(e(0,2));assert.equal(calls.includes('throw'),false);m.up(e(2,0));assert.equal(calls.at(-1),'throw')});
+test('Cancellation clears buttons and a later charge recovers',()=>{const {m,calls}=rig();m.down(e(2,2));m.reset();m.up(e(2,0));assert.deepEqual(calls,['charge','cancel']);m.down(e(2,2));m.up(e(2,0));assert.deepEqual(calls.slice(-2),['charge','throw'])});
